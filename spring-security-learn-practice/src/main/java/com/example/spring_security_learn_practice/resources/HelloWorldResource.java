@@ -1,4 +1,4 @@
-package com.example.spring_security_learn_practice;
+package com.example.spring_security_learn_practice.resources;
 
 import org.springframework.web.bind.annotation.*;
 
