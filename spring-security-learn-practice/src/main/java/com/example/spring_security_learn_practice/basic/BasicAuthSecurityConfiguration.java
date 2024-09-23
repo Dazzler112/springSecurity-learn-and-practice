@@ -2,10 +2,14 @@ package com.example.spring_security_learn_practice.basic;
 
 import static org.springframework.security.config.Customizer.*;
 
+import javax.sql.*;
+
 import org.springframework.context.annotation.*;
+import org.springframework.jdbc.datasource.embedded.*;
 import org.springframework.security.config.annotation.web.builders.*;
 import org.springframework.security.config.http.*;
 import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.jdbc.*;
 import org.springframework.security.provisioning.*;
 import org.springframework.security.web.*;
 
@@ -21,32 +25,63 @@ public class BasicAuthSecurityConfiguration {
 					});
 		http.sessionManagement(
 					session -> 
-					session.sessionCreationPolicy( //세션정책을 설정함
-							SessionCreationPolicy.STATELESS) //세션 사용 안함으로
+					session.sessionCreationPolicy( 
+							SessionCreationPolicy.STATELESS)
 					);
 //		http.formLogin(withDefaults());
 		http.httpBasic(withDefaults());
 		
-		//csrf 설정을 해제
 		http.csrf().disable();
+		
+		http.headers().frameOptions().sameOrigin(); //요청이 동일한 오리진에서 오는 경우 해당 애플리케이션에 프레임을 허용하도록 지정
 		
 		return http.build();
 	}
 	
-	//🔵 InMemory 방식
-	@Bean
-	public UserDetailsService userDetailsService() {
+
+//	@Bean
+//	public UserDetailsService userDetailsService() {
+//		
+//		var user = User.withUsername("player")
+//			.password("{noop}dummy")
+//			.roles("USER")
+//			.build();
+//		
+//		var admin = User.withUsername("admin") 
+//				.password("{noop}dummy")
+//				.roles("ADMIN") 
+//				.build();
+//			
+//		return new InMemoryUserDetailsManager(user, admin);
+//	}
+	
+	@Bean // 해당 빈 생성으로 DB 방식으로 교체 (H2, JDBC)
+	public DataSource dataSource() {
 		
-		var user = User.withUsername("player") //사용자 이름은 player로 설정
-			.password("{noop}dummy")//아직 인코딩하지 않을거여서 noop를 사용하고 패스워드를 dummy로 하겠다
-			.roles("USER") //역할은 USER
+		return new EmbeddedDatabaseBuilder()
+				.setType(EmbeddedDatabaseType.H2)
+				.addScript(JdbcDaoImpl.DEFAULT_USER_SCHEMA_DDL_LOCATION)
+				.build();
+	}
+	
+	@Bean
+	public UserDetailsService userDetailsService(DataSource dataSource) {
+		
+		var user = User.withUsername("player")
+			.password("{noop}dummy")
+			.roles("USER")
 			.build();
 		
-		var admin = User.withUsername("admin") //사용자 이름은 admin로 설정
-				.password("{noop}dummy")//패스워드는 위와 동일하게
-				.roles("ADMIN") //역할은 ADMIN
+		var admin = User.withUsername("admin") 
+				.password("{noop}dummy")
+				.roles("ADMIN", "USER") 
 				.build();
-			
-		return new InMemoryUserDetailsManager(user, admin); //이곳에 user,admin을 입력
+		
+		//JDBC 방식으로 유저 저장
+		var jdbcUserDetailManager = new JdbcUserDetailsManager(dataSource);
+		jdbcUserDetailManager.createUser(user);	
+		jdbcUserDetailManager.createUser(admin);	
+		
+		return jdbcUserDetailManager;
 	}
 }
