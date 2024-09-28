@@ -82,6 +82,6 @@ public class BasicAuthSecurityConfiguration {
 		jdbcUserDetailManager.createUser(user);	
 		jdbcUserDetailManager.createUser(admin);	
 		
-		return jdbcUserDetailManager;
+		return jdbcUserDetailManager; 
 	}
 }
