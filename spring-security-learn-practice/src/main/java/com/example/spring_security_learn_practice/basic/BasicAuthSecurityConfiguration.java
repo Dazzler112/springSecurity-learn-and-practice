@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.*;
 import org.springframework.security.config.http.*;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.security.core.userdetails.jdbc.*;
+import org.springframework.security.crypto.bcrypt.*;
 import org.springframework.security.provisioning.*;
 import org.springframework.security.web.*;
 
@@ -33,7 +34,7 @@ public class BasicAuthSecurityConfiguration {
 		
 		http.csrf().disable();
 		
-		http.headers().frameOptions().sameOrigin(); //요청이 동일한 오리진에서 오는 경우 해당 애플리케이션에 프레임을 허용하도록 지정
+		http.headers().frameOptions().sameOrigin();
 		
 		return http.build();
 	}
@@ -68,12 +69,18 @@ public class BasicAuthSecurityConfiguration {
 	public UserDetailsService userDetailsService(DataSource dataSource) {
 		
 		var user = User.withUsername("player")
-			.password("{noop}dummy")
+//			.password("{noop}dummy")
+			//passwordEncoder 사용
+			.password("dummy")
+			.passwordEncoder(str -> passwordEncoder().encode(str))
 			.roles("USER")
 			.build();
 		
 		var admin = User.withUsername("admin") 
-				.password("{noop}dummy")
+//				.password("{noop}dummy")
+				//passwordEncoder 사용
+				.password("dummy")
+				.passwordEncoder(str -> passwordEncoder().encode(str))
 				.roles("ADMIN", "USER") 
 				.build();
 		
@@ -83,5 +90,11 @@ public class BasicAuthSecurityConfiguration {
 		jdbcUserDetailManager.createUser(admin);	
 		
 		return jdbcUserDetailManager; 
+	}
+	
+	//BcryptPasswordEncoder를 구현하기 위한 PasswordEncoder 생성
+	@Bean
+	public BCryptPasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
 	}
 }
